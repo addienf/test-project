@@ -17,6 +17,15 @@ public class Dokter {
         this.nama = nama;
     }
 
+    public Dokter(String nama, Integer umur, String jenisKelamin, String departemen, String nomorTelpon, String alamat) {
+        this.nama = nama;
+        this.umur = umur;
+        this.jenisKelamin = jenisKelamin;
+        this.departemen = departemen;
+        this.nomorTelpon = nomorTelpon;
+        this.alamat = alamat;
+    }
+
     public Dokter(Integer id, String nama, Integer umur, String jenisKelamin, String departemen, String nomorTelpon, String alamat) {
         this.id = id;
         this.nama = nama;

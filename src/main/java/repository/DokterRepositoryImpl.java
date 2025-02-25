@@ -16,14 +16,12 @@ public class DokterRepositoryImpl implements DokterRepository{
 
     @Override
     public List<Dokter> findAll() {
-        String sql = """
-                SELECT * FROM dokter;
-                """;
-        try(Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sql)){
+        List<Dokter> listDokter = new ArrayList<>();
+        String sql = "SELECT * FROM dokter";
 
-            List<Dokter> listDokter = new ArrayList<>();
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet resultSet = statement.executeQuery()){
 
             while (resultSet.next()){
                 Dokter dokter = new Dokter();
@@ -34,19 +32,19 @@ public class DokterRepositoryImpl implements DokterRepository{
 
             return listDokter;
         } catch (SQLException e){
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error saat mengambil data dokter", e);
         }
     }
 
     @Override
     public Integer create(Dokter object) {
-        int result = 0;
         String sql = """
                 INSERT INTO dokter (nama, umur, jenis_kelamin, departemen, nomor_telpon, alamat)
                 VALUES (?, ?, ?, ?, ?, ?);
                 """;
+
         try (Connection con = dataSource.getConnection();
-             PreparedStatement statement = con.prepareStatement(sql)){
+             PreparedStatement statement = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
 
             statement.setString(1, object.getNama());
             statement.setInt(2, object.getUmur());
@@ -55,21 +53,30 @@ public class DokterRepositoryImpl implements DokterRepository{
             statement.setString(5, object.getNomorTelpon());
             statement.setString(6, object.getAlamat());
 
-            result = statement.executeUpdate();
-        } catch (SQLException e){
-            throw new RuntimeException(e);
-        }
+            int effectedRows = statement.executeUpdate();
 
-        return result;
+            if (effectedRows == 0){
+                throw new SQLException("Gagal menyimpan data dokter, tidak ada baris yang terpengaruh.");
+            }
+
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()){
+                if (generatedKeys.next()){
+                    return generatedKeys.getInt(1);
+                } else {
+                    throw new SQLException("Gagal mendapatkan ID dokter yang baru dibuat.");
+                }
+            }
+        } catch (SQLException e){
+            throw new RuntimeException("Error saat menyimpan data dokter", e);
+        }
     }
 
     @Override
     public Integer update(Dokter object) {
-        int result = 0;
-
         String sql = """
-                UPDATE dokter set nama = ?, umur = ?, jenis_kelamin = ?,
-                departemen = ?, nomor_telpon = ?, alamat = ? WHERE id = ?;
+                UPDATE dokter 
+                set nama = ?, umur = ?, jenis_kelamin = ?, departemen = ?, nomor_telpon = ?, alamat = ? 
+                WHERE id = ?;
                 """;
 
         try (Connection con = dataSource.getConnection();
@@ -83,57 +90,49 @@ public class DokterRepositoryImpl implements DokterRepository{
             statement.setString(6, object.getAlamat());
             statement.setInt(7, object.getId());
 
-            result = statement.executeUpdate();
+            return statement.executeUpdate();
 
         } catch (SQLException e){
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error saat memperbarui data dokter", e);
         }
-
-        return result;
     }
 
     @Override
     public Dokter findById(int id) {
+        String sql = "SELECT * FROM dokter WHERE id = ? ";
         Dokter dokter = null;
-        String sql = "SELECT * FROM dokter WHERE id = " +id;
 
         try(Connection con = dataSource.getConnection();
-        Statement statement = con.createStatement();
-        ResultSet resultSet = statement.executeQuery(sql)){
+        PreparedStatement statement = con.prepareStatement(sql)){
+            statement.setInt(1, id);
 
-            while (resultSet.next()){
-                dokter = new Dokter();
-                dokter.setId(resultSet.getInt("id"));
-                dokter.setNama(resultSet.getString("nama"));
+            try(ResultSet resultSet = statement.executeQuery()){
+                if (resultSet.next()) {
+                    dokter = new Dokter();
+                    dokter.setId(resultSet.getInt("id"));
+                    dokter.setNama(resultSet.getString("nama"));
+                }
             }
-
         } catch (SQLException e){
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error saat mencari dokter dengan ID " + id, e);
         }
 
         return dokter;
     }
 
-    private boolean isExist(Integer num){
-        String sql = """
-                SELECT id FROM dokter where id = ?
-                """;
+    private boolean isExist(int id){
+        String sql = "SELECT id FROM dokter where id = ?";
 
         try (Connection con = dataSource.getConnection();
          PreparedStatement statement = con.prepareStatement(sql)) {
 
-            statement.setInt(1, num);
+            statement.setInt(1, id);
 
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()){
-                    return true;
-                } else {
-                    return false;
-                }
+                return resultSet.next();
             }
-
         } catch (SQLException e){
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error saat mengecek keberadaan dokter dengan ID " + id, e);
         }
     }
 

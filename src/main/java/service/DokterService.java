@@ -2,14 +2,11 @@ package service;
 
 import entity.Dokter;
 
+import java.util.List;
+
 public interface DokterService {
-    void showDokter();
-
-    void showById(Dokter search);
-
-    Dokter findId(int id);
-
-    void addDokter();
-
-    void removeDokter(Integer id);
+    List<Dokter> getAllDokter();
+    Dokter getDokterById(int id);
+    void addDokter(Dokter dokter);
+    void removeDokter(int id);
 }
